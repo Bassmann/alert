@@ -130,6 +130,7 @@
 ;;   log           - Logs the alert text to *Alerts*, with a timestamp
 ;;   message       - Uses the Emacs `message' facility
 ;;   momentary     - Uses the Emacs `momentary-string-display' facility
+;;   android       - Uses android-notifications
 ;;   notifications - Uses notifications library via D-Bus
 ;;   notifier      - Uses terminal-notifier on OS X, if it is on the PATH
 ;;   osx-notifier  - Native OSX notifier using AppleScript
@@ -850,6 +851,36 @@ by the `notifications' style.")
 
   (alert-define-style 'notifications :title "Notify using notifications"
                       :notifier #'alert-notifications-notify))
+
+
+(when (eq system-type 'android)
+  (defun alert-android-notifications-notify (info)
+    "Show the alert defined by INFO with `android-notifications-notify'."
+    (let ((id (notifications-notify :title (plist-get info :title)
+                                    :body  (plist-get info :message)
+                                    :app-icon (plist-get info :icon)
+                                    :timeout (if (plist-get info :persistent) 0 -1)
+                                    :replaces-id (gethash (plist-get info :id) alert-notifications-ids)
+                                    :urgency (cdr (assq (plist-get info :severity)
+                                                        alert-notifications-priorities))
+                                    :actions '("default" "Open corresponding buffer")
+                                    :on-action (lambda (id action)
+                                                 (when (string= action "default")
+                                                   (switch-to-buffer (plist-get info :buffer)))))))
+      (when (plist-get info :id)
+        (puthash (plist-get info :id) id alert-notifications-ids)))
+    (alert-message-notify info))
+
+  (defun alert-android-notifications-remove (info)
+    "Remove the `android-notifications-notify' message based on INFO :id."
+    (let ((id (and (plist-get info :id)
+                   (gethash (plist-get info :id) alert-notifications-ids))))
+      (when id
+        (notifications-close-notification id)
+        (remhash (plist-get info :id) alert-notifications-ids))))
+
+  (alert-define-style 'android :title "Notify using notifications"
+                      :notifier #'alert-android-notifications-notify))
 
 
 (defcustom alert-notifier-command (executable-find "terminal-notifier")
