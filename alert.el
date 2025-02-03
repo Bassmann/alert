@@ -856,7 +856,7 @@ by the `notifications' style.")
 (when (eq system-type 'android)
   (defun alert-android-notifications-notify (info)
     "Show the alert defined by INFO with `android-notifications-notify'."
-    (let ((id (notifications-notify :title (plist-get info :title)
+    (let ((id (android-notifications-notify :title (plist-get info :title)
                                     :body  (plist-get info :message)
                                     :app-icon (plist-get info :icon)
                                     :timeout (if (plist-get info :persistent) 0 -1)
